@@ -3,7 +3,6 @@ use std::fs::File;
 use std::{fs, io};
 use std::io::{Cursor, Read};
 use std::path::{Component, Path, PathBuf};
-
 use clap::{Args, Parser};
 use once_cell::sync::Lazy;
 use serde_json::{Value};
@@ -100,7 +99,8 @@ impl ProjectedFileSystemSource for JsonProvider {
     fn list_directory(
         &self,
         path: &Path
-    ) -> Vec<windows_projfs::DirectoryEntry> {
+    ) -> Vec<DirectoryEntry> {
+        log::trace!("access virtual path: '{}'", path.display());
 
         let curr_path_val = get_path(&self.val, path);
         if let None = curr_path_val {
@@ -160,6 +160,8 @@ impl ProjectedFileSystemSource for JsonProvider {
         byte_offset: usize,
         length: usize
     ) -> io::Result<Box<dyn Read>> {
+        log::trace!("access virtual file: '{}'", path.display());
+
         let curr_path_val = get_path(&self.val, path);
         if let None = curr_path_val {
             return Err(io::Error::new(io::ErrorKind::NotFound, "not found"));
@@ -196,7 +198,7 @@ impl ProjectedFileSystemSource for JsonProvider {
 
 fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Info) // 设置日志级别为 Info
+        .filter_level(log::LevelFilter::Trace) // 设置日志级别为 Info
         .init();
     ProjsonApp::parse().start_and_wait()
 }
