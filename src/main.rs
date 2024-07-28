@@ -114,7 +114,13 @@ impl ProjectedFileSystemSource for JsonProvider {
                 let mut entries = Vec::new();
                 for (key, val) in obj {
                     let entry = match val {
-                        Value::Null => { None }
+                        Value::Null => {
+                            Some(DirectoryEntry::File(FileInfo {
+                                file_name: key.clone(),
+                                file_size: 0,
+                                ..Default::default()
+                            }))
+                        }
                         Value::Bool(v) => {
                             let ctn = if *v { "true".to_string() } else { "false".to_string() };
                             Some(DirectoryEntry::File(FileInfo {
@@ -188,9 +194,16 @@ impl ProjectedFileSystemSource for JsonProvider {
         match ctn {
             None => Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid input")),
             Some(ctn) => {
-                Ok(Box::new(Cursor::new(
-                    ctn.as_bytes()[byte_offset..(byte_offset + length)].to_owned()
-                )))
+                if byte_offset + length > ctn.as_bytes().len() {
+                    Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "invalid read operation",
+                    ))
+                } else {
+                    Ok(Box::new(Cursor::new(
+                        ctn.as_bytes()[byte_offset..(byte_offset + length)].to_owned()
+                    )))
+                }
             }
         }
     }
