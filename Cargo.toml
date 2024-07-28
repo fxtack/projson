@@ -1,9 +1,13 @@
 [package]
+authors = ["Fxtack <fxtack@foxmail.com>"]
+categories = ["command-line-utilities"]
+description = "The program uses ProjFS to map json to file tree."
+repository = "https://github.com/fxtack/projson"
+license = "MIT"
 name = "projson"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+build = "build.rs"
 
 [dependencies]
 clap = { version = "4.5.9", features = ["derive"] }
