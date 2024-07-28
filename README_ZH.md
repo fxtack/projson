@@ -14,9 +14,8 @@ Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
 
 启用 ProjFs 功能后，可以使用 `projson --help` 查看用法信息：
 
-```powershell
+```
 Usage: projson.exe --prj-path <Virtual root directory path> <--json-file <Json file path>|--json-text <Json text>>
-
 Options:
   -f, --json-file <Json file path>              Specifies the JSON file to read
   -t, --json-text <Json text>                   Specifies the JSON text to read
