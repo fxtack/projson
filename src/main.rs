@@ -17,11 +17,11 @@ static VERSION: Lazy<String> = Lazy::new(|| {
 struct JsonSourceArgs {
 
     /// Specifies the JSON file to read
-    #[arg(short, long, value_name = "Json file path")]
+    #[arg(short, long = "json-file", value_name = "Json file path")]
     file: Option<String>,
 
     /// Specifies the JSON text to read
-    #[arg(short, long, value_name = "Json text")]
+    #[arg(short, long = "json-text", value_name = "Json text")]
     text: Option<String>,
 }
 
@@ -33,7 +33,7 @@ struct ProjsonApp {
     json_src: JsonSourceArgs,
 
     /// Specifies the virtualization root directory path
-    #[arg(short, long, value_name = "Virtual root directory path", required = true)]
+    #[arg(short, long = "prj-path", value_name = "Virtual root directory path", required = true)]
     path: PathBuf,
 }
 
