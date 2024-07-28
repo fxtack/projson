@@ -16,7 +16,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
 
 After enabling the ProjFS feature, use `projson --help` to view the usage information.
 
-```powershell
+```
 Usage: projson.exe --prj-path <Virtual root directory path> <--json-file <Json file path>|--json-text <Json text>>
 
 Options:
