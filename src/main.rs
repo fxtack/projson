@@ -81,18 +81,68 @@ pub struct JsonProvider {
     val: Value,
 }
 
-fn get_path<'a>(value: &'a Value, path: &'a Path) -> Option<&'a Value> {
-    let dir_part: Vec<&str> = path.components()
-        .filter_map(|c| match c {
-            Component::Prefix(p) => p.as_os_str().to_str(),
-            Component::RootDir => Some("\\"),
-            Component::CurDir | Component::ParentDir => Some("."),
-            Component::Normal(s) => s.to_str(),
+impl JsonProvider {
+    fn get_path<'a>(&self, value: &'a Value, path: &'a Path) -> Option<&'a Value> {
+        let dir_part: Vec<&str> = path.components()
+            .filter_map(|c| match c {
+                Component::Prefix(p) => p.as_os_str().to_str(),
+                Component::RootDir => Some("\\"),
+                Component::CurDir | Component::ParentDir => Some("."),
+                Component::Normal(s) => s.to_str(),
+            })
+            .collect();
+        dir_part.iter().fold(Some(value), |acc, &key| {
+            acc.and_then(|v| match v {
+                Value::Array(arr) => {
+                    key.parse::<usize>()
+                        .ok()
+                        .and_then(|index| arr.get(index))
+                }
+                Value::Object(obj) => obj.get(key),
+                _ => None,
+            })
         })
-        .collect();
-    dir_part.iter().fold(Some(value), |acc, &key| {
-        acc.and_then(|v| v.as_object().and_then(|m| m.get(key)))
-    })
+    }
+
+    fn value_to_entry(&self, key: String, val: &Value) -> Option<DirectoryEntry> {
+        match val {
+            Value::Null => {
+                Some(DirectoryEntry::File(FileInfo {
+                    file_name: key,
+                    file_size: 0,
+                    ..Default::default()
+                }))
+            }
+            Value::Bool(v) => {
+                let ctn = if *v { "true".to_string() } else { "false".to_string() };
+                Some(DirectoryEntry::File(FileInfo {
+                    file_name: key,
+                    file_size: ctn.len() as u64,
+                    ..Default::default()
+                }))
+            }
+            Value::Number(v) => {
+                Some(DirectoryEntry::File(FileInfo {
+                    file_name: key,
+                    file_size: v.to_string().len() as u64,
+                    ..Default::default()
+                }))
+            }
+            Value::String(v) => {
+                Some(DirectoryEntry::File(FileInfo {
+                    file_name: key,
+                    file_size: v.as_bytes().len() as u64,
+                    ..Default::default()
+                }))
+            }
+            Value::Array(_) | Value::Object(..) => {
+                Some(DirectoryEntry::Directory(DirectoryInfo {
+                    directory_name: key,
+                    ..Default::default()
+                }))
+            }
+        }
+    }
 }
 
 impl ProjectedFileSystemSource for JsonProvider {
@@ -102,62 +152,31 @@ impl ProjectedFileSystemSource for JsonProvider {
     ) -> Vec<DirectoryEntry> {
         log::trace!("access virtual path: '{}'", path.display());
 
-        let curr_path_val = get_path(&self.val, path);
+        let curr_path_val = self.get_path(&self.val, path);
         if let None = curr_path_val {
             return Vec::new();
         }
 
-        let obj = curr_path_val.unwrap().as_object();
-        match obj {
-            None => Vec::new(),
-            Some(obj) => {
-                let mut entries = Vec::new();
+        let mut entries = Vec::new();
+        match curr_path_val.unwrap() {
+            Value::Array(arr) => {
+                for (idx, val) in arr.iter().enumerate() {
+                    if let Some(entry) = self.value_to_entry(idx.to_string(), val) {
+                        entries.push(entry);
+                    }
+                }
+            }
+            Value::Object(obj) => {
                 for (key, val) in obj {
-                    let entry = match val {
-                        Value::Null => {
-                            Some(DirectoryEntry::File(FileInfo {
-                                file_name: key.clone(),
-                                file_size: 0,
-                                ..Default::default()
-                            }))
-                        }
-                        Value::Bool(v) => {
-                            let ctn = if *v { "true".to_string() } else { "false".to_string() };
-                            Some(DirectoryEntry::File(FileInfo {
-                                file_name: key.clone(),
-                                file_size: ctn.len() as u64,
-                                ..Default::default()
-                            }))
-                        }
-                        Value::Number(v) => {
-                            Some(DirectoryEntry::File(FileInfo {
-                                file_name: key.clone(),
-                                file_size: v.to_string().len() as u64,
-                                ..Default::default()
-                            }))
-                        }
-                        Value::String(v) => {
-                            Some(DirectoryEntry::File(FileInfo {
-                                file_name: key.clone(),
-                                file_size: v.len() as u64,
-                                ..Default::default()
-                            }))
-                        }
-                        Value::Array(_) | Value::Object(_) => {
-                            Some(DirectoryEntry::Directory(DirectoryInfo {
-                                directory_name: key.clone(),
-                                ..Default::default()
-                            }))
-                        }
-                    };
-                    if let Some(entry) = entry {
+                    if let Some(entry) = self.value_to_entry(key.clone(), val) {
                         entries.push(entry)
                     }
                 }
-
-                entries
             }
+            _ => {}
         }
+
+        entries
     }
 
     fn stream_file_content(
@@ -168,27 +187,17 @@ impl ProjectedFileSystemSource for JsonProvider {
     ) -> io::Result<Box<dyn Read>> {
         log::trace!("access virtual file: '{}'", path.display());
 
-        let curr_path_val = get_path(&self.val, path);
+        let curr_path_val = self.get_path(&self.val, path);
         if let None = curr_path_val {
             return Err(io::Error::new(io::ErrorKind::NotFound, "not found"));
         }
 
         let ctn = match curr_path_val.unwrap() {
-            Value::Null => {
-                Some("".to_string())
-            }
-            Value::Bool(v) => {
-                Some(if *v { "true".to_string() } else { "true".to_string() })
-            }
-            Value::Number(v) => {
-                Some(v.to_string())
-            }
-            Value::String(v) => {
-                Some(v.clone())
-            }
-            Value::Array(_) | Value::Object(_) => {
-                None
-            }
+            Value::Null => Some("".to_string()),
+            Value::Bool(v) => Some(if *v { "true".to_string() } else { "false".to_string() }),
+            Value::Number(v) => Some(v.to_string()),
+            Value::String(v) => Some(v.clone()),
+            Value::Array(_) | Value::Object(_) => None,
         };
 
         match ctn {
