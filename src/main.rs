@@ -93,7 +93,7 @@ impl JsonProvider {
         }
 
         let path_str = path.to_str().unwrap();
-        let parts: Vec<&str> = path_str.split('/').collect();
+        let parts: Vec<&str> = path_str.split('\\').collect();
 
         let mut current_value = value;
         for part in parts {
@@ -239,7 +239,7 @@ mod tests {
                 "key2": 2,
                 "key3": true
             },
-            "array": [1, "two", false, null, { "hello": "world" }, [null, "good", 1024] ],
+            "array": [1, "two", false, null, { "hello": "world", "kind": [ "value" ] }, [null, "good", 1024] ],
             "string": "This is a string.",
             "number": 123,
             "boolean": true,
@@ -249,12 +249,13 @@ mod tests {
         let cases = [
             (Path::new(""), Some(val.clone())),
             (Path::new("object"), Some(json!({ "key1": "value1", "key2": 2, "key3": true }))),
-            (Path::new("object/key1"), Some(json!("value1".to_string()))),
-            (Path::new("object/key2"), Some(json!(2))),
-            (Path::new("array/0"), Some(json!(1))),
-            (Path::new("array/1"), Some(json!("two"))),
-            (Path::new("array/4/hello"), Some(json!("world"))),
-            (Path::new("array/5/1"), Some(json!("good"))),
+            (Path::new(r#"object\key1"#), Some(json!("value1".to_string()))),
+            (Path::new(r#"object\key2"#), Some(json!(2))),
+            (Path::new(r#"array\0"#), Some(json!(1))),
+            (Path::new(r#"array\1"#), Some(json!("two"))),
+            (Path::new(r#"array\4\hello"#), Some(json!("world"))),
+            (Path::new(r#"array\4\kind\0"#), Some(json!("value"))),
+            (Path::new(r#"array\5\1"#), Some(json!("good"))),
             (Path::new("boolean"), Some(json!(true))),
             (Path::new("null"), Some(json!(null))),
             (Path::new("any"), None)
@@ -263,7 +264,9 @@ mod tests {
         for case in cases {
             match JsonProvider::get_value_from_path(&val, &case.0) {
                 None => assert_eq!(case.1, None),
-                Some(expected) => assert_eq!(*expected, case.1.unwrap()),
+                Some(expected) => {
+                    assert_eq!(*expected, case.1.unwrap())
+                },
             }
         }
     }
