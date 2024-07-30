@@ -30,7 +30,7 @@ Options:
 When mapping JSON to files or directories, the JSON key will be the file or directory name, and the type of the value will determine whether the key-value pair is mapped to a file or a directory, according to the following rules:
 
 - Object: Directory, the object's sub key-values are directory items.
-- Array: Directory, the elements in the array are directory items.
+- Array: Directory, The index of the array will be used as the name of the file or directory in the subitems of the directory. Whether the subitem is a directory or a file, the same rules apply.
 - String: File, the file content is the string value.
 - Number: File, the file content is the numeric value.
 - Boolean: File, the file content is 'true' or 'false'.
