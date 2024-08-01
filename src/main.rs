@@ -82,6 +82,8 @@ impl ProjsonApp {
     }
 }
 
+const FILE_ATTRIBUTE_READONLY: u32 = 1u32;
+
 pub struct JsonProvider {
     val: Value,
 }
@@ -117,6 +119,7 @@ impl JsonProvider {
                 Some(DirectoryEntry::File(FileInfo {
                     file_name: key,
                     file_size: 0,
+                    file_attributes: FILE_ATTRIBUTE_READONLY,
                     ..Default::default()
                 }))
             }
@@ -125,6 +128,7 @@ impl JsonProvider {
                 Some(DirectoryEntry::File(FileInfo {
                     file_name: key,
                     file_size: ctn.len() as u64,
+                    file_attributes: FILE_ATTRIBUTE_READONLY,
                     ..Default::default()
                 }))
             }
@@ -132,6 +136,7 @@ impl JsonProvider {
                 Some(DirectoryEntry::File(FileInfo {
                     file_name: key,
                     file_size: v.to_string().len() as u64,
+                    file_attributes: FILE_ATTRIBUTE_READONLY,
                     ..Default::default()
                 }))
             }
@@ -139,6 +144,7 @@ impl JsonProvider {
                 Some(DirectoryEntry::File(FileInfo {
                     file_name: key,
                     file_size: v.as_bytes().len() as u64,
+                    file_attributes: FILE_ATTRIBUTE_READONLY,
                     ..Default::default()
                 }))
             }
