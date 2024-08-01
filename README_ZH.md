@@ -25,9 +25,8 @@ Options:
 ```
 
 从 JSON 映射为文件或目录时，JSON 的 key 为文件或目录名，value 的类型将决定该 key-value 被映射为文件或目录，规则如下：
-
 - Object: 目录，Object 子 key-value 为目录子项；
-- Array: 目录，array 中元素为目录子项；
+- Array: 目录，array 中元素的索引值将为文件名，如果元素类型是 Object、Array 则为目录，其他为文件；
 - String: 文件，文件内容是字符串值；
 - Number: 文件，文件内容为数值；
 - Boolean: 文件，文件内容为 'true' 或 'false'；
